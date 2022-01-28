@@ -1,15 +1,28 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
 import React from 'react';
 import appConfig from '../config.json';
-import { createClient } from '@supabase/supabase-js'
-
+import { createClient } from '@supabase/supabase-js';
+import { useRouter } from 'next/router';
+import { ButtonSendSticker } from '../src/components/ButtonSendSticker'
 
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
+function getMessages(addMessage) {
+  return supabaseClient
+    .from('messages')
+    .on('INSERT', (response) => {
+      addMessage(response.new);
+    })
+    .subscribe();
+}
+
 export default function ChatPage() {
+  const routing = useRouter();
+  const user = routing.query.username;
+  console.log(user)
   const [message, setMessage] = React.useState('');
   const [messageList, setMessageList] = React.useState([]);
 
@@ -21,13 +34,23 @@ export default function ChatPage() {
       .then(({ data }) => {
         setMessageList(data)
       });
+
+    getMessages((newMessage) => {
+      setMessageList((valueList) => {
+        return [
+          newMessage,
+          ...valueList,
+        ]
+
+      })
+    });
   }, []);
 
 
   function handleNewMessage(newMessage) {
     const message = {
       // id: messageList.length + 1,
-      from: 'cauaolivio',
+      from: user,
       text: newMessage,
     };
 
@@ -36,12 +59,7 @@ export default function ChatPage() {
       .insert([
         message
       ])
-      .then(({ data }) => {
-        setMessageList([
-          data[0],
-          ...messageList,
-        ])
-      })
+      .then(({ data }) => { })
 
     setMessage('');
   }
@@ -119,6 +137,11 @@ export default function ChatPage() {
                 color: appConfig.theme.colors.neutrals[200],
               }}
             />
+            <ButtonSendSticker
+              onStickerClick={(sticker) => {
+                handleNewMessage(':sticker: ' + sticker)
+              }}
+            />
           </Box>
         </Box>
       </Box>
@@ -150,7 +173,7 @@ function MessageList(props) {
     <Box
       tag="ul"
       styleSheet={{
-        overflow: 'scroll-auto',
+        overflow: 'auto',
         display: 'flex',
         flexDirection: 'column-reverse',
         flex: 1,
@@ -201,10 +224,16 @@ function MessageList(props) {
                 {(new Date().toLocaleDateString())}
               </Text>
             </Box>
-            {message.text}
+            {message.text.startsWith(':sticker:')
+              ? (
+                <Image src={message.text.replace(':sticker:', '')} />
+              )
+              : (
+                message.text
+              )}
           </Text>
         )
-      })}
-    </Box>
+      })}.
+    </Box >
   )
 }

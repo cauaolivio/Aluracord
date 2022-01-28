@@ -53,7 +53,7 @@ export default function PaginaInicial() {
             as="form"
             onSubmit={function (eventInfos) {
               eventInfos.preventDefault();
-              routing.push('/chat');
+              routing.push(`/chat?username=${username}`);
             }}
             styleSheet={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
